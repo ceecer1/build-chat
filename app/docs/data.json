@@ -1,0 +1,11 @@
+Note
+{"event":"connect", "id":"connect"}
+
+Diary
+{"event":"msg", "to":"neil", "message":"go home"}
+
+Rough
+{"event":"rough", "book":"Manning", "page":"fuck"}
+
+ListMembers
+{"event":"list", "me":"hary"}
