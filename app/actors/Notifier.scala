@@ -2,7 +2,6 @@ package actors
 
 import akka.actor._
 import models._
-import actors.Supervisor.Connected
 import play.api.libs.json.Json
 
 /**
@@ -10,14 +9,32 @@ import play.api.libs.json.Json
  */
 case class Member(id: String, val receiver: ActorRef, val sender: ActorRef)
 
-object MyWebSocketActor {
+object Notifier {
+
+  case class DisconnectMember(ref: ActorRef)
+
   var members = Map.empty[String, Member]
-  def props(out: ActorRef, sup: ActorRef, id: String) = Props(new MyWebSocketActor(out, sup, id))
+  def props(out: ActorRef, id: String) = Props(new Notifier(out, id))
+
 }
 
-class MyWebSocketActor(out: ActorRef, sup: ActorRef, id: String) extends Actor with ActorLogging {
+//TODO: http://stackoverflow.com/questions/26476827/private-communication-between-client-and-server-using-websockets-play-2-3-x
 
-  import MyWebSocketActor._
+class Notifier(out: ActorRef, id: String) extends Actor with ActorLogging {
+
+  val myActor = context.actorOf(MyActor.props(self), "member-"+id)
+
+
+  /*val c = (sendActor ? Init(id, receiveActor)).map{
+    case c: ConnectedWS[_] =>
+      play.Logger.info(s"Connected Member with ID:$id")
+      members = members + (id -> Member(id, receiveActor, sendActor))
+      c
+  }*/
+
+  import Notifier._
+  import MyActor._
+
   def receive = {
     /*case no: Connect => {
       if (!members.contains(id)) {
@@ -29,6 +46,7 @@ class MyWebSocketActor(out: ActorRef, sup: ActorRef, id: String) extends Actor w
     }*/
     case di: SendMessage => {
       val account: WsResponse = new WsResponse("Message", id, Json.toJson(di.message))
+      myActor ! Send(account)
       log.info(s"Sender $id")
       if(members.exists(_._1 == di.to))
         members.get(di.to).get.receiver ! account
@@ -51,10 +69,9 @@ class MyWebSocketActor(out: ActorRef, sup: ActorRef, id: String) extends Actor w
   override def preStart(): Unit = {
     if (!members.contains(id)) {
       log.info(s"Adding $id")
-      /*log.info(id)*/
       members = members + (id -> Member(id, out, sender))
     }
-    sup ! Connected(id)
+    //sup ! Connected(id)
     /*context.watch()*/
   }
 
