@@ -14,15 +14,15 @@ object Notifier {
   case class DisconnectMember(ref: ActorRef)
 
   var members = Map.empty[String, Member]
-  def props(out: ActorRef, id: String) = Props(new Notifier(out, id))
+  def props(out: ActorRef, sup: ActorRef, id: String) = Props(new Notifier(out, sup, id))
 
 }
 
 //TODO: http://stackoverflow.com/questions/26476827/private-communication-between-client-and-server-using-websockets-play-2-3-x
 
-class Notifier(out: ActorRef, id: String) extends Actor with ActorLogging {
+class Notifier(out: ActorRef, sup: ActorRef, id: String) extends Actor with ActorLogging {
 
-  val myActor = context.actorOf(MyActor.props(self), "member-"+id)
+  /*val myActor = context.actorOf(MyActor.props(self), "member-"+id)*/
 
 
   /*val c = (sendActor ? Init(id, receiveActor)).map{
@@ -33,7 +33,7 @@ class Notifier(out: ActorRef, id: String) extends Actor with ActorLogging {
   }*/
 
   import Notifier._
-  import MyActor._
+  import Supervisor._
 
   def receive = {
     /*case no: Connect => {
@@ -45,11 +45,9 @@ class Notifier(out: ActorRef, id: String) extends Actor with ActorLogging {
       out ! account
     }*/
     case di: SendMessage => {
+      log.info("Reached SendMessage case in Notifier")
       val account: WsResponse = new WsResponse("Message", id, Json.toJson(di.message))
-      myActor ! Send(account)
-      log.info(s"Sender $id")
-      if(members.exists(_._1 == di.to))
-        members.get(di.to).get.receiver ! account
+      sup ! SuperSend(di.to, account)
     }
 
     case ro: Disconnect => {
@@ -62,25 +60,16 @@ class Notifier(out: ActorRef, id: String) extends Actor with ActorLogging {
     }
     case lm: ListMemberIds => {
       val account: WsResponse = new WsResponse("activity", "rough", Json.obj("msg" -> members.map(_._1).toSeq))
-      members.get(id).get.receiver ! account
+      membersMap.get(id).get ! account
     }
   }
 
   override def preStart(): Unit = {
-    if (!members.contains(id)) {
-      log.info(s"Adding $id")
-      members = members + (id -> Member(id, out, sender))
-    }
-    //sup ! Connected(id)
-    /*context.watch()*/
+    sup ! Connected(id, out)
   }
 
   override def postStop(): Unit = {
-    members.get(id).foreach{ m =>
-      log.info(s"Removing $id")
-      members = members - id
-      m.receiver ! PoisonPill
-      m.sender ! PoisonPill
+      log.info("postStop reached")
+      sup ! Disconnect(id)
     }
-  }
 }

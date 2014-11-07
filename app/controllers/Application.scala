@@ -1,10 +1,12 @@
 package controllers
 
-import actors.Notifier
+import actors.{Supervisor, Notifier}
+import akka.actor.Props
 import play.api.Play.current
 import play.api.mvc._
 import models.{WsResponse, ClientEvent, Contact}
 import play.api.mvc.WebSocket.FrameFormatter
+import play.libs.Akka
 import scala.concurrent.Future
 
 object Application extends Controller {
@@ -22,8 +24,8 @@ object Application extends Controller {
     Future.successful(mem.get("k") match {
       case None => Left(Forbidden)
       case Some(_) => {
-        //val sup = Akka.system.actorOf(Props[Supervisor])
-        Right(Notifier.props(_, id))
+        val sup = Akka.system.actorOf(Props[Supervisor])
+        Right(Notifier.props(_, sup, id))
       }
     })
   }
