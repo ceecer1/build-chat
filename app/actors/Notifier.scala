@@ -10,7 +10,7 @@ import play.api.libs.json.Json
 object Notifier {
 
   case class Connected(id: String, ref: ActorRef)
-  case class Exited(id: String, ref: ActorRef)
+  case class Exited(id: String, ref: Seq[ActorRef])
 
   def props(out: ActorRef, sup: ActorRef, id: String) = Props(new Notifier(out, sup, id))
 
@@ -32,7 +32,7 @@ class Notifier(out: ActorRef, sup: ActorRef, id: String) extends Actor with Acto
 
     case Exited(id, ref) => {
       val exitMsg: WsResponse = new WsResponse("Disconnected", id, Json.toJson("exited"))
-      ref ! exitMsg
+      ref.foreach(_ ! exitMsg)
     }
 
     case di: SendMessage => {

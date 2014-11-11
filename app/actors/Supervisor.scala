@@ -41,11 +41,10 @@ class Supervisor extends Actor with ActorLogging {
 
     case Disconnect(id) => {
       log.info(s"disconnecting member $id")
-      val exitMsg: WsResponse = new WsResponse("Disconnected", id, Json.toJson("exited"))
       membersMap.get(id).foreach{ m =>
         membersMap -= id
       }
-      membersMap.map(m => m._2 ! exitMsg)
+      sender ! Exited(id, membersMap.map(_._2).toSeq)
     }
 
     case Terminated(out) => log.info(s"The Actor Path ${out.path} terminated")
