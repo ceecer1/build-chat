@@ -4,6 +4,7 @@ import actors.Notifier.Exited
 import akka.actor._
 import models.WsResponse
 import play.api.libs.json.{JsObject, Json}
+import play.libs.Akka
 
 /**
  * Created by shishir on 11/6/14.
@@ -18,9 +19,14 @@ object Supervisor {
 
   var membersMap = Map[String, ActorRef]()
 
+  def props(name: String): Props = Props(classOf[Supervisor], name)
+
+  //used for sending messages to actor
+  val instance:ActorRef = Akka.system.actorOf(Supervisor.props("activisor"))
+
 }
 
-class Supervisor extends Actor with ActorLogging {
+class Supervisor(name: String) extends Actor with ActorLogging {
 
   import Notifier.Connected
   import Supervisor._
@@ -36,6 +42,7 @@ class Supervisor extends Actor with ActorLogging {
     }
 
     case SuperSend(to, msg) => {
+      log.info(to)
       membersMap.get(to).get ! msg
     }
 
@@ -44,7 +51,7 @@ class Supervisor extends Actor with ActorLogging {
       membersMap.get(id).foreach{ m =>
         membersMap -= id
       }
-      sender ! Exited(id, membersMap.map(_._2).toSeq)
+      //sender ! Exited(id, membersMap.map(_._2).toSeq)
     }
 
     case Terminated(out) => log.info(s"The Actor Path ${out.path} terminated")
