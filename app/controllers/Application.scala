@@ -9,12 +9,17 @@ import play.api.mvc._
 import models.{WsResponse, ClientEvent, Contact}
 import play.api.mvc.WebSocket.FrameFormatter
 import play.libs.Akka
+import play.modules.reactivemongo.ReactiveMongoPlugin
+import play.modules.reactivemongo.json.collection.JSONCollection
 import scala.concurrent.Future
 
 object Application extends Controller {
 
   implicit val inEventFrameFormatter = FrameFormatter.jsonFrame[ClientEvent]
   implicit val outEventFrameFormatter = FrameFormatter.jsonFrame[WsResponse]
+
+  def db = ReactiveMongoPlugin.db
+  def collection: JSONCollection = db[JSONCollection]("test")
 
   val mem = Map("k" -> "car")
 
