@@ -2,5 +2,4 @@ This is your new Play application
 =================================
 
 This file will be packaged with your application, when using `activator dist`.
-
-Ohh yes, I was trying to build a websocket chat application based on Play Framework.
+Build a websocket chat application based on Play Framework.
